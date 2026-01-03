@@ -1,4 +1,5 @@
-use std::fmt;
+use std::{fmt};
+use std::collections::HashMap;
 
 use crate::{infixes::{infix_binding_power, postfix_binding_power, prefix_binding_power}, lexer::Lexer, token::Token};
 
@@ -83,31 +84,46 @@ pub fn expr_bp(lexer: &mut Lexer, min_bp: u8) -> S {
    lhs
 }
 
-pub fn compute(s: S) -> Option<i32> {
+pub fn compute(s: S, vars: &mut HashMap<String, i32>) -> Option<i32> {
    match s {
-      S::Atom(val) => Some(val.to_string().parse::<i32>().unwrap_or(0)),
+      S::Atom(val) => {
+         if let Ok(num) = val.to_string().parse::<i32>(){
+            Some(num)
+         } else {
+            vars.get(&val.to_string()).copied()
+         }
+      },
 
       S::Cons(op, children) => {
+            if op == '<' && children.len() >= 2 {
+               if let S::Atom(var_name) = &children[0]{
+                  let value = compute(children[1].clone(), vars).unwrap_or(0);
+                  vars.insert(var_name.to_string(), value);
+                  return Some(value)
+               }
+            }
+            
+            
             // Operador ternário: ? precisa ter acesso aos 3 valores
          if op == '?' && children.len() == 2 {
                // Estrutura esperada: (? condição (: valor_true valor_false))
-               let condition = compute(children[0].clone()).unwrap_or(0);
+               let condition = compute(children[0].clone(), vars).unwrap_or(0);
                
                // O segundo filho deve ser uma expressão com ':'
                if let S::Cons(':', colon_children) = &children[1] {
                   if colon_children.len() == 2 {
-                     let true_val = compute(colon_children[0].clone()).unwrap_or(0);
-                     let false_val = compute(colon_children[1].clone()).unwrap_or(0);
+                     let true_val = compute(colon_children[0].clone(),vars).unwrap_or(0);
+                     let false_val = compute(colon_children[1].clone(), vars).unwrap_or(0);
 
                      return Some(if condition != 0 { true_val } else { false_val });
                   }
                }
          }
 
-         let left = compute(children[0].clone()).unwrap_or(0);
+         let left = compute(children[0].clone(), vars).unwrap_or(0);
          let mut right = None;
          if children.len() > 1{
-               right = compute(children[1].clone());
+               right = compute(children[1].clone(), vars);
          }
 
          match right {
@@ -116,16 +132,19 @@ pub fn compute(s: S) -> Option<i32> {
                   '-' => Some(left - right),
                   '*' => Some(left * right),
                   '/' => Some(left / right),
+                  '^' => Some(left.pow(right as u32)),
                   '=' => { 
                      // Equality
                      if left == right 
                            { Some(1) } 
                      else 
                            { Some(0) }
-                  }
-                  '<' => {
-                     // Adding to variable
-                     todo!()
+                  },
+                  '>' => {
+                  if left > right 
+                        { Some(1) } 
+                  else 
+                        { Some(0) }
                   }
                   _ => panic!("BAD TOKEN: {}", op),
                }},
@@ -134,6 +153,8 @@ pub fn compute(s: S) -> Option<i32> {
                   match op {
                   '+' => Some(left),
                   '-' => Some(-1 * left),
+                  '@' => Some((left as f64).sqrt() as i32),
+
                   _ => panic!("BAD TOKEN: {}", op),
                }
                }

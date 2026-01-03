@@ -1,16 +1,18 @@
-mod lexer;
-mod token;
 mod infixes;
+mod lexer;
 mod s_expr;
-use token::Token;
+mod token;
 use std::{
+    collections::HashMap,
     io::{self, Write},
 };
+use token::Token;
 
 use crate::s_expr::{compute, expr};
 
 fn main() {
     title();
+    let mut vars: HashMap<String, i32> = HashMap::new();
     loop {
         print!(">> ");
         io::stdout().flush().unwrap();
@@ -26,25 +28,17 @@ fn main() {
             return;
         }
 
+
         // Processa a expressão
-        match std::panic::catch_unwind(|| {
-            let s = expr(input);
-            let eval = compute(s.clone());
-            (s, eval)
-        }) {
-            Ok((s, eval)) => {
-                println!("   TREE: {}", s);
-                println!("   RESULT: {}\n", eval.unwrap());
-            }
-            Err(_) => {
-                println!("   ❌ ERROR: INVALID EXPRESSION\n");
-            }
+        let s = expr(input);
+        let eval = compute(s.clone(), &mut vars);        
+        println!("   TREE: {}", s);
+        println!("   RESULT: {}\n", eval.unwrap_or(0));
         }
     }
-}
 
 
-fn title(){
+fn title() {
     println!("╔════════════════════════════════════════╗");
     println!("║     Calculator Pratt Parser            ║");
     println!("║      'exit' or 'quit' to quit          ║");

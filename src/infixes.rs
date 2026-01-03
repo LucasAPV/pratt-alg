@@ -1,10 +1,13 @@
 pub fn infix_binding_power(op: char) -> Option<(u8, u8)> {
    let res = match op {
-      '?'       => (1, 2),
-      ':'       => (3, 4),
-      '='       => (5, 6),
-      '+' | '-' => (7, 8),
-      '*' | '/' => (9, 10),
+      '<'       => (1, 2),
+      '?'       => (3, 4),
+      ':'       => (5, 6),
+      '='       => (7, 8),
+      '+' | '-' => (9, 10),
+      '*' | '/' => (11, 12),
+      '^'       => (13, 14),
+
       _ => return None,
    };
 
@@ -14,6 +17,7 @@ pub fn infix_binding_power(op: char) -> Option<(u8, u8)> {
 pub fn prefix_binding_power(op: char) -> ((), u8) {
    match op {
       '+' | '-' => ((), 5),
+      '@'       => ((), 6),
       _ => panic!("BAD TOKEN: {:?}", op),
    }
 }
